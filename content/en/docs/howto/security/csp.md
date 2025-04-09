@@ -110,4 +110,45 @@ After you finish testing locally, remember to remove the line of code in the `he
 
 ### Enabling the Header in the Cloud
 
-To enable the header in the cloud, follow the instructions in the [HTTP Headers](/developerportal/deploy/environments-details/#http-headers) section of *Environment Details*.
+In Mendix v10.12 we have added a new way of setting the CSP header. It can now be set using the *Headers* custom runtime setting. This is the recommended way of setting the CSP header. The old way of setting the CSP header using the *HTTP Headers* is deprecated and will be removed in the future. A JSON configuration can be used containing the CSP header and its value. The JSON configuration should look like this:
+
+```json
+{
+  "Content-Security-Policy": "default-src 'self';"
+}
+```
+
+In versions before 10.12, follow the instructions in the [HTTP Headers](/developerportal/deploy/environments-details/#http-headers) section of *Environment Details*.
+
+### Nonces
+
+The CSP header can also contain nonces. Nonces are used to allow specific inline scripts to run while still maintaining a strict CSP. We only recommend using nonces for experts who are familiar with CSP and its implications.
+
+{{% alert type="warning" %}}
+Only supported using the `Headers` custom runtime setting. The `HTTP Headers` setting does not support nonces.
+{{% /alert %}}
+
+To use nonces, all HTML files in your theme folder need to be updated to include the nonce template tag for `<style>` and `<script>` tags. For example:
+
+```html
+<script
+  src="mxclientsystem/mxui/mxui.js?{{cachebust}}"
+  nonce="{{NONCE}}"
+></script>
+```
+
+The header itself also needs to be updated to include the nonce. The header should look like this:
+
+```json
+{
+  "Content-Security-Policy": "default-src 'self'; script-src 'self' 'nonce-{{NONCE}}';"
+}
+```
+
+## CSP for your marketplace module
+
+If you are creating a marketplace module in which you are serving HTML files, you likely want to ensure your module uses the proper CSP headers and tags. For this, we provide the following runtime APIs from Mx11 onwards:
+
+* `Configuration#getHeader`, can be used to get the current CSP header, e.g. `Core.getConfiguration().getHeader("Content-Security-Policy")`. Use this to get the template for the CSP header. You can also use this to determine whether you need to template nonces in your HTML files.
+* `IMxRuntimeResponse#addContentSecurityPolicy`, can be used to add the configured CSP header to the response.
+* `IMxRuntimeResponse#getNonce`, used to get a unique nonce for the current response. This can be used to template the nonce in your HTML files.
